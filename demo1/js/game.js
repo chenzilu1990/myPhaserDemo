@@ -21,11 +21,19 @@ var config = {
 
 		preload : preload,
 		create : create,
-		update : update
+		update : update,
+		extend : {
+			bullets : null,
+			enemys : null,
+			lastFired : 0,
+			lastEnemy :  0
+		}
 	}
+
 }
 
 var game = new Phaser.Game(config)
+
 var enemy1
 var bg
 var AKey
@@ -34,6 +42,7 @@ var preTime = 0
 var delate = 0
 var speed = 100
 var pool
+var bullet1
 
 function preload() {
 	this.load.image('enemy', './images/enemy.png')
@@ -45,64 +54,44 @@ function preload() {
 function create() {
 
 	var Enemy = new Phaser.Class({
-		Extends : Phaser.GameObjects.Sprite,
+		Extends : Phaser.Physics.Arcade.Image,
 		initialize : 
 		function Enemy(scene,y){
-			Phaser.GameObjects.Sprite.call(this,scene,0,0,'enemy')
-			// this.setTexture('enemy')
+			Phaser.Physics.Arcade.Image.call(this,scene,0,0,'enemy')
+
 
 			this.setOrigin(0, 0)
 			this.x = Phaser.Math.Between(0, screenW - this.width) 
 			this.y = y
 			this.speed = 5
+			this.born = 0
 			scene.children.add(this)
 		},
 
-		update : function() {
+		fire : function () {
+			
+		},
+
+		update : function(time, delta) {
+			// console.log('*******')
 			this.y += this.speed
-			if (this.y > screenH ) {
-				this.y = -this.height 
-				this.x = Phaser.Math.Between(0, screenW - this.width) 
+			this.born += delta
+			if (this.born > 2000 ) {
+				this.setActive(false)
+				this.setVisible(false)
+				// this.y = -this.height
+				this.born = 0 
+				// this.x = Phaser.Math.Between(0, screenW - this.width) 
 
 			}
 		}
 	}) 
 
+	
 
 	
 
-	var Pool = new Phaser.Class({
-		Extends : Phaser.GameObjects.Group,
-		initialize : 
-		function Pool (scene) {
-		 	Phaser.GameObjects.Group.call(this,scene)
-		 	this.bulletPool = []
-		 	// this.scene = scene
-		} ,
-
-		createBullet : function(x, y, key) {
-			
-			if (this.bulletPool.length === 0) {
-
-				return	this.scene.physics.add.sprite(x, y, key).setVelocityY(-500)		 
-			} else {
-				var bullet = this.bulletPool[0]
-				bullet.setPosition(x,y)
-				// bullet.x = x
-				// bullet.y = y
-				bullet.setVelocityY(-500)
-				return bullet
-			}
-
-		}
-
-		// update : function  () {
-		// 	console.log('*********')
-		// }
-		 
-	})
-
-		pool = new Pool(this)
+	
 
 		bg1 = this.add.sprite(0, 0, 'bg')
 		bg1.setOrigin(0, 0).setScale(screenW /512, screenH / 512)
@@ -110,13 +99,10 @@ function create() {
 		bg2.setOrigin(0, 0).setScale(screenW /512, screenH / 512)
 
 
- 		enemy1 = new Enemy(this, 0)
- 		enemy2 = new Enemy(this, - screenH / 4)
- 		enemy3 = new Enemy(this, - screenH / 2)
- 		enemy4 = new Enemy(this, - (3 * screenH) / 4)
  	
 
 		player = this.physics.add.sprite(screenW / 2 , screenH -10 , 'hero') 	
+
 
 		player.y -= player.height / 2
 
@@ -124,38 +110,76 @@ function create() {
 		player.setBounce(0)
  		
 
- 		AKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A)
+
  		cursors = this.input.keyboard.createCursorKeys()
 
- 	
+ 		var Bullet = new Phaser.Class({
+			Extends : Phaser.Physics.Arcade.Image,
+			initialize :
+			function Bullet (scene) {
+				Phaser.Physics.Arcade.Image.call(this,scene,0,0,'bullet')
+				this.speed = -1
+				this.born = 0
+				// this.velocity = [1,1]
+				// scene.children.add(this)
+				// console.log(scene.children)
+			},
 
+			fire : function (player) {
+				this.setActive(true)
+				this.setVisible(true)
+				this.setPosition(player.x, player.y - player.height)
+			},	
+
+			update : function (time,delta) {
+				console.log('^_^')
+				this.y += this.speed * delta / 20
+				// console.log(this.x)
+				
+				this.born += delta
+				if (this.born >= 5000) {
+					console.log(this)
+					this.setActive(false)
+					this.setVisible(false)
+					this.born = 0
+				}
+
+			}
+
+
+		})
 
 		
 
+		this.bullets = this.add.group({classType : Bullet, runChildUpdate : true})
+		this.enemys = this.add.group({classType : Enemy, runChildUpdate : true})
 }
 
 function update(time,delta) {
-	// console.log(this.time.now %  1000)
-	// console.log(time,delta)
+	if (time > this.lastEnemy) {
+
+		var enemy = this.enemys.get()
+		enemy.x = Phaser.Math.Between(0, screenW - enemy.width)
+		enemy.y = - enemy.height
+		enemy.setActive(true)
+		enemy.setVisible(true)
+		this.lastEnemy = time + 600
+	}
+	
 	if (bg1.y >= screenH) bg1.y = -screenH
 	bg1.y += 2
 
 	if (bg2.y >= screenH) bg2.y = -screenH
 	bg2.y += 2
 
-	// 
-
-	if (AKey.isDown) {
-
-		player.setVelocityX(-speed)
-	}
+	
 
 	if (cursors.left.isDown) {
 		player.setVelocityX(-speed)
 	} else if (cursors.right.isDown) {
 		player.setVelocityX(speed)	
 	} else {
-		// console.log('up')
+
 		player.setVelocityX(0)	
 	}
 
@@ -165,31 +189,21 @@ function update(time,delta) {
 	} else if (cursors.down.isDown) {
 		player.setVelocityY(speed)	
 	} else {
-		// console.log('up')
+
 		player.setVelocityY(0)	
 	}
 
 
-	if (cursors.space.isDown) {
+	if (cursors.space.isDown && time > this.lastFired) {
 
-		delate += (time - preTime)
-
-		if (delate >= 500) {
-			var bullet1 = pool.createBullet(player.x , player.y - player.height /2 ,'bullet')
-
-
-			// bullet1.visible = false
-			delate = 0
-		}
-		preTime = time
-
+		var bullet = this.bullets.get()	
+		// console.log(bullet)
+		bullet.fire(player)
+		this.lastFired = time + 1000
 
 	}
 
 
-	// enemy1.update()
-	// enemy2.update()
-	// enemy3.update()
-	// enemy4.update()
+	
 
 }
