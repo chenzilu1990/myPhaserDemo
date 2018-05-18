@@ -45,36 +45,36 @@ var pool
 var bullet1
 
 function preload() {
-	this.load.image('enemy', './images/enemy.png')
 	this.load.image('bg', './images/bg.jpg')
+	this.load.image('enemy', './images/enemy.png')
 	this.load.image('hero', './images/hero.png')
 	this.load.image('bullet', './images/bullet.png')
 }
 
 function create() {
-
+	// 敌人
 	var Enemy = new Phaser.Class({
 		Extends : Phaser.Physics.Arcade.Image,
 		initialize : 
-		function Enemy(scene,y){
+		function Enemy(scene){
 			Phaser.Physics.Arcade.Image.call(this,scene,0,0,'enemy')
 
 
 			this.setOrigin(0, 0)
-			this.x = Phaser.Math.Between(0, screenW - this.width) 
-			this.y = y
-			this.speed = 5
+			// this.x = Phaser.Math.Between(0, screenW - this.width) 
+			// this.y = y
+			this.speed = 0.4
 			this.born = 0
-			scene.children.add(this)
+			// scene.children.add(this)
 		},
 
-		fire : function () {
+		// fire : function () {
 			
-		},
+		// },
 
 		update : function(time, delta) {
 			// console.log('*******')
-			this.y += this.speed
+			this.y += this.speed * delta
 			this.born += delta
 			if (this.born > 2000 ) {
 				this.setActive(false)
@@ -87,75 +87,67 @@ function create() {
 		}
 	}) 
 
-	
+	// 子弹
+	var Bullet = new Phaser.Class({
+		Extends : Phaser.Physics.Arcade.Image,
+		initialize :
+		function Bullet (scene) {
+			Phaser.Physics.Arcade.Image.call(this,scene,0,0,'bullet')
+			this.speed = -0.5
+			this.born = 0
+			
+		},
 
-	
+		fire : function (player) {
+			this.setActive(true)
+			this.setVisible(true)
+			this.setPosition(player.x, player.y - player.height)
+		},	
 
-	
+		update : function (time,delta) {
 
-		bg1 = this.add.sprite(0, 0, 'bg')
-		bg1.setOrigin(0, 0).setScale(screenW /512, screenH / 512)
-		bg2 = this.add.sprite(0, screenH, 'bg')
-		bg2.setOrigin(0, 0).setScale(screenW /512, screenH / 512)
-
-
- 	
-
-		player = this.physics.add.sprite(screenW / 2 , screenH -10 , 'hero') 	
-
-
-		player.y -= player.height / 2
-
-		player.setCollideWorldBounds(true)
-		player.setBounce(0)
- 		
-
-
- 		cursors = this.input.keyboard.createCursorKeys()
-
- 		var Bullet = new Phaser.Class({
-			Extends : Phaser.Physics.Arcade.Image,
-			initialize :
-			function Bullet (scene) {
-				Phaser.Physics.Arcade.Image.call(this,scene,0,0,'bullet')
-				this.speed = -1
+			this.y += this.speed * delta 
+			// console.log(this.x)
+			
+			this.born += delta
+			if (this.born >= 5000) {
+				console.log(this)
+				this.setActive(false)
+				this.setVisible(false)
 				this.born = 0
-				// this.velocity = [1,1]
-				// scene.children.add(this)
-				// console.log(scene.children)
-			},
-
-			fire : function (player) {
-				this.setActive(true)
-				this.setVisible(true)
-				this.setPosition(player.x, player.y - player.height)
-			},	
-
-			update : function (time,delta) {
-				console.log('^_^')
-				this.y += this.speed * delta / 20
-				// console.log(this.x)
-				
-				this.born += delta
-				if (this.born >= 5000) {
-					console.log(this)
-					this.setActive(false)
-					this.setVisible(false)
-					this.born = 0
-				}
-
 			}
 
+		}
 
-		})
 
+	})
+
+	// 键盘输入
+ 	cursors = this.input.keyboard.createCursorKeys()
+	
+
+	
+ 	// 背景实例
+	bg1 = this.add.sprite(0, 0, 'bg')
+	bg1.setOrigin(0, 0).setScale(screenW /512, screenH / 512)
+	bg2 = this.add.sprite(0, screenH, 'bg')
+	bg2.setOrigin(0, 0).setScale(screenW /512, screenH / 512)
+	// 玩家实例
+	player = this.physics.add.sprite(screenW / 2 , screenH -10 , 'hero') 	
+	player.y -= player.height / 2
+	player.setCollideWorldBounds(true)
+	player.setBounce(0)
 		
+	// 子弹池实例
+	this.bullets = this.add.group({classType : Bullet, runChildUpdate : true})
+	// 敌人池水实例
+	this.enemys = this.add.group({classType : Enemy, runChildUpdate : true})
+	
 
-		this.bullets = this.add.group({classType : Bullet, runChildUpdate : true})
-		this.enemys = this.add.group({classType : Enemy, runChildUpdate : true})
 }
 
 function update(time,delta) {
+	// 敌人逻辑更新
 	if (time > this.lastEnemy) {
 
 		var enemy = this.enemys.get()
@@ -165,7 +157,7 @@ function update(time,delta) {
 		enemy.setVisible(true)
 		this.lastEnemy = time + 600
 	}
-	
+	// 背景逻辑更新
 	if (bg1.y >= screenH) bg1.y = -screenH
 	bg1.y += 2
 
@@ -173,7 +165,7 @@ function update(time,delta) {
 	bg2.y += 2
 
 	
-
+	// 键盘输入响应
 	if (cursors.left.isDown) {
 		player.setVelocityX(-speed)
 	} else if (cursors.right.isDown) {
@@ -193,17 +185,15 @@ function update(time,delta) {
 		player.setVelocityY(0)	
 	}
 
-
+	// 响应键盘输入发射子弹
 	if (cursors.space.isDown && time > this.lastFired) {
 
 		var bullet = this.bullets.get()	
-		// console.log(bullet)
+
 		bullet.fire(player)
-		this.lastFired = time + 1000
+		this.lastFired = time + 100
 
 	}
-
-
-	
+ 
 
 }
