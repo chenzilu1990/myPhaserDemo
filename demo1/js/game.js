@@ -51,16 +51,15 @@ function preload() {
 	this.load.image('hero', './images/hero.png')
 	this.load.image('bullet', './images/bullet.png')
 	for(var i = 0; i < 19; i++){
-		// array[i]
-		// console.log('hrh' + (i + 1))
-		let key1 = 'explosion' + (i + 1)
+		
+		let key = 'explosion' + (i + 1)
 		let path = './images/explosion' + (i + 1) + '.png'
 		let frame = {
-			key : key1
+			key 
 
 		}
 		this.frames.push(frame)
-		this.load.image(key1, path)
+		this.load.image(key, path)
 	}
 }
 
@@ -78,20 +77,31 @@ function create() {
 			
 			this.speed = 0.4
 			this.born = 0
-			// this.enableBody(true,0,0,true,true)
-			// this.setActive()
+
+
 		},
 
-		
+		boot : function  () {
+			this.x = Phaser.Math.Between(0, screenW - this.width)
+			this.y = - this.height
+			this.setActive(true)
+			this.setVisible(true)
+			this.enableBody(true, this.x, this.y, true, true)
+		},
 
-		update : function(time, delta) {
+		explosion : function () {
+			// console.log(this)
+			this.scene.add.sprite(this.x + this.width / 2,this.y + this.height / 2,'explosion1').play('explosion')
+		},
 
+		update : function (time, delta) {
+			// console.log('******^_^')
 			this.y += this.speed * delta
 			this.born += delta
 			if (this.born > 2000 ) {
 				this.setActive(false)
 				this.setVisible(false)
-
+				this.disableBody(true,true)
 				this.born = 0 
 
 
@@ -105,15 +115,16 @@ function create() {
 		initialize :
 		function Bullet (scene) {
 			Phaser.Physics.Arcade.Image.call(this,scene,0,0,'bullet')
-			this.speed = -0.5
+			this.speed = -0.2
 			this.born = 0
 			
 		},
 
 		fire : function (player) {
+			this.setPosition(player.x, player.y - player.height)
 			this.setActive(true)
 			this.setVisible(true)
-			this.setPosition(player.x, player.y - player.height)
+			this.enableBody(true,this.x ,this.y, true, true)
 		},	
 
 		update : function (time,delta) {
@@ -123,10 +134,12 @@ function create() {
 			
 			this.born += delta
 			if (this.born >= 5000) {
-				console.log(this)
+				// console.log(this)
 				this.setActive(false)
 				this.setVisible(false)
+				this.disableBody(true,true)
 				this.born = 0
+
 			}
 
 		}
@@ -137,6 +150,15 @@ function create() {
 	// 键盘输入
  	cursors = this.input.keyboard.createCursorKeys()
 	
+
+ 	// 爆炸动画
+	this.anims.create({
+		key : 'explosion',
+		frames : this.frames,
+		frameRate : 30,
+		hideOnComplete : true
+		// repeat : -1
+	})
 
 	
  	// 背景实例
@@ -152,31 +174,26 @@ function create() {
 		
 	// 子弹池实例
 	this.bullets = this.physics.add.group({classType : Bullet, runChildUpdate : true})
-	// this.bullets.enableBody = true
-	// console.log(game)
+	
 	// 敌人池水实例
 	this.enemys = this.physics.add.group({classType : Enemy, runChildUpdate : true})
-	// var enemy = this.physics.add.image(0,0,'enemy')
-	// console.log(enemy)
-	// console.log(new Enemy(this))
+	// 碰撞检测
 	this.physics.add.overlap(player,this.enemys,function () {
-		console.log('****')
+		// console.log('****')
 	}, null, this)
-	// this.physics.add.collider(player, this.enemys)
-	this.physics.add.overlap(this.bullets ,this.enemys,function () {
-		console.log('^_^')
+
+	this.physics.add.overlap(this.bullets ,this.enemys,function (bullet, enemy) {
+		// console.log('^_^')
+		
+		bullet.disableBody(true, true)
+		enemy.disableBody(true, true)
+
+		enemy.explosion()
 	}, null, this)
 
 
-	console.log(this.frames)
-	this.anims.create({
-		key : 'explosion',
-		frames : this.frames,
-		frameRate : 30,
-		hideOnComplete : true
-		// repeat : -1
-	})
-	this.add.sprite(100,100,'explosion1').play('explosion')
+	
+	
 
 }
 
@@ -185,13 +202,7 @@ function update(time,delta) {
 	if (time > this.lastEnemy) {
 
 		var enemy = this.enemys.get()
-		enemy.x = Phaser.Math.Between(0, screenW - enemy.width)
-		enemy.y = - enemy.height
-		enemy.setActive(true)
-		enemy.setVisible(true)
-		// enemy.enableBody(false,0,0,true,true)
-		// console.log(enemy)
-
+		enemy.boot()
 		this.lastEnemy = time + 600
 	}
 	// 背景逻辑更新
@@ -228,7 +239,7 @@ function update(time,delta) {
 		var bullet = this.bullets.get()	
 
 		bullet.fire(player)
-		this.lastFired = time + 100
+		this.lastFired = time + 500
 
 	}
  
