@@ -27,7 +27,9 @@ var config = {
 			enemys : null,
 			lastFired : 0,
 			lastEnemy : 0,
-			frames : []
+			frames : [],
+			score : 0,
+			scoreText : {}
 		}
 	}
 
@@ -178,19 +180,10 @@ function create() {
 	// 敌人池水实例
 	this.enemys = this.physics.add.group({classType : Enemy, runChildUpdate : true})
 	// 碰撞检测
-	this.physics.add.overlap(player,this.enemys,function () {
-		// console.log('****')
-	}, null, this)
+	this.physics.add.overlap(this.bullets ,this.enemys,shootDown, null, this)
+	this.physics.add.overlap(player,this.enemys,gameOver, null, this)
 
-	this.physics.add.overlap(this.bullets ,this.enemys,function (bullet, enemy) {
-		// console.log('^_^')
-		
-		bullet.disableBody(true, true)
-		enemy.disableBody(true, true)
-
-		enemy.explosion()
-	}, null, this)
-
+	this.scoreText = this.add.text(10,10, '0', {fontSize : '32px', fill :'#fff'})
 
 	
 	
@@ -243,5 +236,20 @@ function update(time,delta) {
 
 	}
  
+
+}
+
+function shootDown (bullet, enemy) {
+	
+	bullet.disableBody(true, true)
+	enemy.disableBody(true, true)
+	enemy.explosion() 
+	this.score += 1
+	this.scoreText.setText(this.score)
+	// console.log(this.score)
+}
+
+function gameOver (player, enemy) {
+	// console.log('gameOver')
 
 }
